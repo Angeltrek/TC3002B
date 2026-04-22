@@ -2,7 +2,7 @@
 
 Angel Mauricio Ramírez Herrera | A01710158
 
-El objetivo de este proyecto es predecir si un paciente puede sufrir un accidente cerebrovascular a partir de variables clínicas y demográficas. Se comparan cuatro enfoques: dos modelos de machine learning clásico y dos redes neuronales densas, incluyendo un modelo propuesto con conexiones residuales.
+El objetivo de este proyecto es predecir si un paciente puede sufrir un accidente cerebrovascular a partir de variables clínicas y demográficas.
 
 La estructura de entrenamiento y guardado de modelos está basada en mi repositorio hecho para la clasificación de género de canciones por la estructura de la letra: SongTextClassifier. GitHub: https://github.com/Angeltrek/SongTextClassifier
 
@@ -10,16 +10,17 @@ La estructura de entrenamiento y guardado de modelos está basada en mi reposito
 
 ## Dataset
 
-| Variable          | Descripción                         |
+
+| Variable          | Descripción                        |
 | ----------------- | ----------------------------------- |
 | age               | Edad del paciente                   |
-| hypertension      | Hipertensión (0/1)                  |
-| heart_disease     | Enfermedad cardíaca (0/1)           |
+| hypertension      | Hipertensión (0/1)                 |
+| heart_disease     | Enfermedad cardíaca (0/1)          |
 | ever_married      | Estado civil                        |
 | work_type         | Tipo de trabajo                     |
 | Residence_type    | Tipo de residencia                  |
 | avg_glucose_level | Nivel promedio de glucosa           |
-| bmi               | Índice de masa corporal             |
+| bmi               | Índice de masa corporal            |
 | smoking_status    | Tabaquismo                          |
 | stroke            | Variable objetivo (1 = tuvo stroke) |
 
@@ -117,6 +118,7 @@ graph LR
 
 ## Resultados
 
+
 | Modelo                 | Accuracy | F1 Macro | ROC-AUC | Tiempo |
 | ---------------------- | -------- | -------- | ------- | ------ |
 | Random Forest mejorado | 0.9550   | 0.9549   | 0.9885  | 0.82s  |
@@ -141,48 +143,41 @@ El feature más relevante según el Random Forest fue la edad, seguido del nivel
 
 Python 3.10, 3.11 o 3.12 instalado en el sistema. Para verificar:
 
-    python --version
-
+python --version
 ### Windows
 
-    python -m venv venv
-    venv\Scripts\activate
-    pip install -r requirements.txt
-
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
 ### macOS / Linux
 
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 Para desactivar el entorno:
 
-    deactivate
-
+deactivate
 ---
 
 ## Estructura del proyecto
 
-    stroke-prediction/
-    ├── predict.py
-    ├── requirements.txt
-    ├── README.md
-    └── models/
-        ├── rf_improved_model.pkl
-        └── MLP_deep.keras
-
+stroke-prediction/
+├── predict.py
+├── requirements.txt
+├── README.md
+└── models/
+    ├── rf_improved_model.pkl
+    └── MLP_deep.keras
 ---
 
 ## Uso
 
 Paciente completamente aleatorio:
 
-    python predict.py --models ./models --random
-
+python predict.py --models ./models --random
 Modo interactivo (presiona Enter en cualquier campo para usar un valor aleatorio):
 
-    python predict.py --models ./models --interactive
-
+python predict.py --models ./models --interactive
 Con argumentos directos:
 
-    python predict.py --models ./models --age 72 --gender Male --hypertension 1 --heart_disease 1 --ever_married Yes --work_type Private --residence_type Urban --avg_glucose_level 228.0 --bmi 36.6 --smoking_status "formerly smoked"
+python predict.py --models ./models --age 72 --gender Male --hypertension 1 --heart_disease 1 --ever_married Yes --work_type Private --residence_type Urban --avg_glucose_level 228.0 --bmi 36.6 --smoking_status "formerly smoked"
