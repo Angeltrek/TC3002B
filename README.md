@@ -1,136 +1,188 @@
-# TC3002B — Fact-Checking Model
+# Stroke Prediction: Predicción de accidente cerebrovascular
 
-**Angel Mauricio Ramírez Herrera | A01710158**  
-🔗 [Kaggle Notebook](https://www.kaggle.com/code/angeltrek/tc3002b)
+Angel Mauricio Ramírez Herrera | A01710158
 
----
+El objetivo de este proyecto es predecir si un paciente puede sufrir un accidente cerebrovascular a partir de variables clínicas y demográficas. Se comparan cuatro enfoques: dos modelos de machine learning clásico y dos redes neuronales densas, incluyendo un modelo propuesto con conexiones residuales.
 
-## Objetivo
-
-Implementar y comparar múltiples modelos de clasificación sobre el dataset **SCVD-11K**, desde un baseline simple hasta modelos de Deep Learning, para identificar cuál ofrece el mejor desempeño en la tarea de **Fact-Checking** con tres clases:
-
-- **Supported** → Afirmación respaldada por consenso científico.
-- **Refuted** → Afirmación contradice evidencia científica.
-- **Not Enough Evidence** → No existe evidencia suficiente.
+La estructura de entrenamiento y guardado de modelos está basada en mi repositorio hecho para la clasificación de género de canciones por la estructura de la letra: SongTextClassifier. GitHub: https://github.com/Angeltrek/SongTextClassifier
 
 ---
 
-## Dataset — SCVD-11K
+## Dataset
 
-| Atributo | Valor |
-|----------|-------|
-| Fuente | [Kaggle — sudhanshuyadav09](https://www.kaggle.com/datasets/sudhanshuyadav09/scientific-fact-check-classification-dataset) |
-| Total de muestras | 11,000 |
-| Split original | 10,000 train / 1,000 test |
-| Clases | `Supported` · `Refuted` · `Not Enough Evidence` |
-| Balance | ~3,667 muestras por clase (dataset balanceado) |
-| Tipo de texto | Afirmaciones científicas de una oración |
-| Tamaño en disco | 0.84 MB |
-
----
-
-## Modelos implementados
-
-| # | Modelo | Tipo |
-|---|--------|------|
-| 1 | Dummy Classifier (Most Frequent) | Baseline |
-| 2 | Logistic Regression + TF-IDF | ML Clásico |
-| 3 | Naive Bayes + TF-IDF | ML Clásico |
-| 4 | SVM Lineal + TF-IDF | ML Clásico |
-| 5 | Random Forest + TF-IDF | ML Clásico |
-| 6 | Gradient Boosting + TF-IDF | ML Clásico |
-| 7 | LSTM con Embedding aprendido | Deep Learning |
-| 8 | BiLSTM con Embedding aprendido | Deep Learning |
-| 9 | CNN + BiGRU + GloVe | Deep Learning |
+| Variable          | Descripción                         |
+| ----------------- | ----------------------------------- |
+| age               | Edad del paciente                   |
+| hypertension      | Hipertensión (0/1)                  |
+| heart_disease     | Enfermedad cardíaca (0/1)           |
+| ever_married      | Estado civil                        |
+| work_type         | Tipo de trabajo                     |
+| Residence_type    | Tipo de residencia                  |
+| avg_glucose_level | Nivel promedio de glucosa           |
+| bmi               | Índice de masa corporal             |
+| smoking_status    | Tabaquismo                          |
+| stroke            | Variable objetivo (1 = tuvo stroke) |
 
 ---
 
-## Pipeline de limpieza de texto
+## Análisis exploratorio
 
-```python
-def clean_text(series):
-    return (
-        series
-        .str.replace(r'\(Statement ID \d+\)$', '', regex=True)
-        .str.replace(r'\[.*?\]', '', regex=True)
-        .str.replace(r'\n+', ' ', regex=True)
-        .str.replace(r'[^a-zA-Z\s]', ' ', regex=True)
-        .str.replace(r'\s+', ' ', regex=True)
-        .str.strip()
-        .str.lower()
-    )
+El dataset tiene clase desbalanceada, con alrededor del 52% de los casos sin stroke y solo el 48.07% con stroke. Esto es clínicamente realista pero implica que el accuracy por sí solo no es suficiente para evaluar el modelo, ya que un clasificador trivial podría obtener métricas altas sin aprender patrones reales. Por esta razón se reportan F1 Macro y ROC-AUC como métricas principales.
+
+Se observa que probablemente existe una correlación entre la edad y la presencia de stroke, lo que es coherente con los factores de riesgo documentados clínicamente.
+
+---
+
+## Matriz de correlación
+
+Se analizó la correlación entre variables para identificar multicolinealidad y para entender qué variables tienen mayor relación con la variable objetivo. Se detecta que efectivamente existe una correlación positiva entre stroke y age, lo que confirma la observación del análisis exploratorio. Variables como work_type y ever_married tienen correlación implícita con la edad, lo que puede introducir redundancia en el modelo.
+
+---
+
+## Arquitecturas
+
+### Logistic Regression
+
+```mermaid
+graph LR
+    A[Input\nn_features] --> B[Linear combination\nz = Wx + b]
+    B --> C[Sigmoid\n1 / 1+e^-z]
+    C --> D[Output\nP stroke]
 ```
 
-Pasos: eliminación de IDs entre paréntesis, eliminación de corchetes, reemplazo de saltos de línea, solo caracteres alfabéticos, normalización de espacios, conversión a minúsculas.
+### Random Forest
 
----
+```mermaid
+graph TD
+    A[Input\nn_features] --> B[Tree 1]
+    A --> C[Tree 2]
+    A --> D[Tree N\nn_estimators=300]
+    B --> E[Vote]
+    C --> E
+    D --> E
+    E --> F[Output\nP stroke]
+```
 
-## Métricas de evaluación
+### MLP base
 
-Siguiendo a Sokolova & Lapalme (2009):
+```mermaid
+graph LR
+    A[Input\nn_features] --> B[Dense 64\nReLU]
+    B --> C[Dropout 0.3]
+    C --> D[Dense 32\nReLU]
+    D --> E[Dropout 0.2]
+    E --> F[Dense 1\nSigmoid]
+    F --> G[Output\nP stroke]
+```
 
-| Métrica | Justificación |
-|---------|---------------|
-| **Accuracy** | Válida dado que el dataset está balanceado. |
-| **F1 Macro** | Penaliza igual el error en todas las clases. Recomendada en NLP multiclase. |
-| **F1 Weighted** | Complementa al F1 Macro considerando soporte de cada clase. |
+### MLP con BatchNormalization
+
+```mermaid
+graph LR
+    A[Input\nn_features] --> B[Dense 128\nReLU]
+    B --> C[BatchNorm]
+    C --> D[Dropout 0.4]
+    D --> E[Dense 64\nReLU]
+    E --> F[BatchNorm]
+    F --> G[Dropout 0.3]
+    G --> H[Dense 32\nReLU]
+    H --> I[Dropout 0.2]
+    I --> J[Dense 1\nSigmoid]
+    J --> K[Output\nP stroke]
+```
+
+### MLP con Residual Connections (modelo propuesto)
+
+```mermaid
+graph LR
+    A[Input\nn_features] --> B[Projection\nDense 64]
+    B --> C[Residual Block 1]
+    C --> D[Residual Block 2]
+    D --> E[Residual Block 3]
+    E --> F[Dense 1\nSigmoid]
+    F --> G[Output\nP stroke]
+
+    subgraph Residual Block
+        H[Dense 64] --> I[BatchNorm]
+        I --> J[ReLU]
+        J --> K[Dropout 0.3]
+        K --> L[Dense 64]
+        L --> M[BatchNorm]
+        M --> N[Add input + output]
+        N --> O[ReLU]
+    end
+```
 
 ---
 
 ## Resultados
 
-| Modelo | Accuracy | F1 Macro | F1 Weighted | Tiempo (s) |
-|--------|----------|----------|-------------|------------|
-| Logistic Regression + TF-IDF | 1.0000 | 1.0000 | 1.0000 | 0.13 |
-| Naive Bayes + TF-IDF | 1.0000 | 1.0000 | 1.0000 | 0.10 |
-| SVM Lineal + TF-IDF | 1.0000 | 1.0000 | 1.0000 | 0.34 |
-| Random Forest + TF-IDF | 1.0000 | 1.0000 | 1.0000 | 0.71 |
-| Gradient Boosting + TF-IDF | 1.0000 | 1.0000 | 1.0000 | 2.78 |
-| CNN + BiGRU + GloVe | 1.0000 | 1.0000 | 1.0000 | 134.89 |
-| BiLSTM (Embedding aprendido) | 1.0000 | 1.0000 | 1.0000 | 311.26 |
-| LSTM (Embedding aprendido) | 0.6660 | 0.5553 | 0.5548 | 363.89 |
-| Dummy Classifier | 0.3330 | 0.1665 | 0.1664 | 0.00 |
+| Modelo                 | Accuracy | F1 Macro | ROC-AUC | Tiempo |
+| ---------------------- | -------- | -------- | ------- | ------ |
+| Random Forest mejorado | 0.9550   | 0.9549   | 0.9885  | 0.82s  |
+| Random Forest          | 0.9035   | 0.9035   | 0.9815  | 0.81s  |
+| MLP deep               | 0.8328   | 0.8328   | 0.9359  | 19.13s |
+| MLP base               | 0.7814   | 0.7805   | 0.8664  | 14.61s |
+| Logistic Regression    | 0.7395   | 0.7394   | 0.8417  | 0.01s  |
 
-### Configuración TF-IDF
+El Random Forest fue el modelo con mejor desempeño en todas las métricas. Esto es consistente con lo que reporta la literatura para datasets clínicos tabulares de tamaño reducido, donde los modelos de ensamble de árboles tienden a superar a las redes neuronales porque no necesitan grandes volúmenes de datos para generalizar bien. El Random Forest mejorado, con mayor profundidad máxima, incrementó el ROC-AUC a 0.9885 y la accuracy a 0.9550, lo que confirma que el modelo base tenía margen para capturar más patrones sin llegar a sobreajuste significativo.
 
-```python
-TfidfVectorizer(max_features=20000, ngram_range=(1, 2), sublinear_tf=True)
-```
+La regresión logística obtuvo el menor rendimiento pero sigue siendo el modelo más interpretable clínicamente: sus coeficientes indican directamente qué variables aumentan o reducen el riesgo, lo que tiene valor en un contexto médico donde la explicabilidad importa tanto como la precisión.
 
-### Configuración Deep Learning
+Las redes neuronales quedaron en un punto intermedio. El MLP con BatchNormalization superó al MLP base en todas las métricas, lo que sugiere que la normalización de las activaciones ayuda a la convergencia en este tipo de datos. Sin embargo, ambas redes tardaron entre 15 y 20 veces más en entrenar que el Random Forest sin lograr superarlo.
 
-```
-MAX_WORDS = 20000  |  MAX_LEN = 50  |  EMBED_DIM = 128
-Vocabulario real del dataset: 164 tokens
-Loss: sparse_categorical_crossentropy  |  Optimizer: Adam(lr=0.001)
-Callbacks: EarlyStopping(patience=5) + ReduceLROnPlateau
-```
+El feature más relevante según el Random Forest fue la edad, seguido del nivel de glucosa promedio y el BMI, lo cual es coherente con los factores de riesgo documentados clínicamente para el accidente cerebrovascular.
 
 ---
 
-## Análisis de resultados
+## Instalación
 
-**Baseline (Dummy Classifier)**  
-Accuracy ≈ 33% con tres clases balanceadas, F1 Macro muy bajo porque las otras dos clases tienen F1 = 0. Define el piso mínimo que cualquier modelo real debe superar.
+### Requisitos previos
 
-**ML Clásico + TF-IDF**  
-Sorprendentemente competitivos para un dataset de 11K muestras cortas. Logistic Regression y SVM Lineal lideran en clasificación de texto corto porque TF-IDF captura palabras clave discriminativas. Naive Bayes es eficiente pero asume independencia entre palabras. Random Forest y Gradient Boosting son más costosos y no siempre superan a los modelos lineales en texto corto.
+Python 3.10, 3.11 o 3.12 instalado en el sistema. Para verificar:
 
-**Deep Learning**  
-LSTM captura dependencias secuenciales, útil para negaciones como no hay evidencia. BiLSTM mejora sobre LSTM al procesar el texto en ambas direcciones. CNN + BiGRU + GloVe integra conocimiento semántico preentrenado (GloVe 6B 200d), detección de patrones locales y contexto secuencial bidireccional.
+    python --version
 
-**Observación sobre el dataset**  
-El SCVD-11K contiene afirmaciones cortas (una oración) y un vocabulario real de solo 164 tokens, lo que favorece a los modelos que capturan palabras clave (TF-IDF + modelos lineales). Los modelos con suficiente capacidad memorizan el mapping completo, lo que explica el alto accuracy generalizado.
+### Windows
+
+    python -m venv venv
+    venv\Scripts\activate
+    pip install -r requirements.txt
+
+### macOS / Linux
+
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+
+Para desactivar el entorno:
+
+    deactivate
 
 ---
 
-## Cómo ejecutar
+## Estructura del proyecto
 
-El notebook está diseñado para correr en **Kaggle con GPU habilitada**. El dataset se descarga automáticamente:
+    stroke-prediction/
+    ├── predict.py
+    ├── requirements.txt
+    ├── README.md
+    └── models/
+        ├── rf_improved_model.pkl
+        └── MLP_deep.keras
 
-```python
-import kagglehub
-path = kagglehub.dataset_download('sudhanshuyadav09/scientific-fact-check-classification-dataset')
-```
+---
 
-GloVe (Modelo 9) se descarga desde Stanford en la primera ejecución (~862 MB).
+## Uso
+
+Paciente completamente aleatorio:
+
+    python predict.py --models ./models --random
+
+Modo interactivo (presiona Enter en cualquier campo para usar un valor aleatorio):
+
+    python predict.py --models ./models --interactive
+
+Con argumentos directos:
+
+    python predict.py --models ./models --age 72 --gender Male --hypertension 1 --heart_disease 1 --ever_married Yes --work_type Private --residence_type Urban --avg_glucose_level 228.0 --bmi 36.6 --smoking_status "formerly smoked"
