@@ -10,17 +10,16 @@ La estructura de entrenamiento y guardado de modelos está basada en mi reposito
 
 ## Dataset
 
-
-| Variable          | Descripción                        |
+| Variable          | Descripción                         |
 | ----------------- | ----------------------------------- |
 | age               | Edad del paciente                   |
-| hypertension      | Hipertensión (0/1)                 |
-| heart_disease     | Enfermedad cardíaca (0/1)          |
+| hypertension      | Hipertensión (0/1)                  |
+| heart_disease     | Enfermedad cardíaca (0/1)           |
 | ever_married      | Estado civil                        |
 | work_type         | Tipo de trabajo                     |
 | Residence_type    | Tipo de residencia                  |
 | avg_glucose_level | Nivel promedio de glucosa           |
-| bmi               | Índice de masa corporal            |
+| bmi               | Índice de masa corporal             |
 | smoking_status    | Tabaquismo                          |
 | stroke            | Variable objetivo (1 = tuvo stroke) |
 
@@ -92,32 +91,9 @@ graph LR
     J --> K[Output\nP stroke]
 ```
 
-### MLP con Residual Connections (modelo propuesto)
-
-```mermaid
-graph LR
-    A[Input\nn_features] --> B[Projection\nDense 64]
-    B --> C[Residual Block 1]
-    C --> D[Residual Block 2]
-    D --> E[Residual Block 3]
-    E --> F[Dense 1\nSigmoid]
-    F --> G[Output\nP stroke]
-
-    subgraph Residual Block
-        H[Dense 64] --> I[BatchNorm]
-        I --> J[ReLU]
-        J --> K[Dropout 0.3]
-        K --> L[Dense 64]
-        L --> M[BatchNorm]
-        M --> N[Add input + output]
-        N --> O[ReLU]
-    end
-```
-
 ---
 
 ## Resultados
-
 
 | Modelo                 | Accuracy | F1 Macro | ROC-AUC | Tiempo |
 | ---------------------- | -------- | -------- | ------- | ------ |
@@ -144,11 +120,13 @@ El feature más relevante según el Random Forest fue la edad, seguido del nivel
 Python 3.10, 3.11 o 3.12 instalado en el sistema. Para verificar:
 
 python --version
+
 ### Windows
 
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
+
 ### macOS / Linux
 
 python3 -m venv venv
@@ -156,8 +134,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 Para desactivar el entorno:
 
-deactivate
----
+## deactivate
 
 ## Estructura del proyecto
 
@@ -166,8 +143,9 @@ stroke-prediction/
 ├── requirements.txt
 ├── README.md
 └── models/
-    ├── rf_improved_model.pkl
-    └── MLP_deep.keras
+├── rf_improved_model.pkl
+└── MLP_deep.keras
+
 ---
 
 ## Uso
