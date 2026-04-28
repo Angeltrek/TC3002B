@@ -2,9 +2,19 @@
 
 Angel Mauricio Ramírez Herrera | A01710158
 
-El objetivo de este proyecto es predecir si un paciente puede sufrir un accidente cerebrovascular a partir de variables clínicas y demográficas.
+El objetivo de este proyecto es predecir si un paciente puede sufrir un accidente cerebrovascular a partir de variables clínicas y demográficas. Se comparan cuatro enfoques: dos modelos de machine learning clásico y dos redes neuronales densas.
 
 La estructura de entrenamiento y guardado de modelos está basada en mi repositorio hecho para la clasificación de género de canciones por la estructura de la letra: SongTextClassifier. GitHub: https://github.com/Angeltrek/SongTextClassifier
+
+---
+
+### Base de la investigación
+
+La selección de modelos y el diseño experimental están sustentados en trabajos previos de la literatura. Asadi et al. (2023) evaluaron cinco algoritmos supervisados sobre un dataset clínico de stroke de Kaggle, encontrando que Logistic Regression y Gradient Boosting alcanzaron la mayor accuracy (95.11%) y ROC-AUC (0.836), aunque todos los modelos mostraron un recall bajo para la clase positiva debido al desbalance de clases. Su análisis de importancia de features con Random Forest identificó la edad, el nivel de glucosa promedio y el BMI como los predictores más influyentes, lo que coincide con la Hipótesis del Síndrome Metabólico y con hallazgos epidemiológicos previos. Este resultado motivó incluir esas tres variables como las más relevantes en el análisis exploratorio de este proyecto y confirmó que el desbalance de clases es el principal obstáculo a resolver antes de entrenar cualquier modelo.
+
+Para las redes neuronales densas, el diseño de las capas y el uso de BatchNormalization como técnica de regularización se apoya en Trigka y Dritsas (2023), quienes aplicaron arquitecturas similares sobre datos clínicos tabulares de predicción cardiovascular y demostraron que la normalización por lotes acelera la convergencia y mejora la generalización en datasets de tamaño moderado.
+
+La elección de F1 Macro y ROC-AUC como métricas principales en lugar de accuracy sigue la recomendación de Sokolova y Lapalme (2009), quienes argumentan que en problemas de clasificación con clases desbalanceadas el accuracy es una métrica insuficiente porque no refleja el desempeño real sobre la clase minoritaria.
 
 ---
 
@@ -27,9 +37,26 @@ La estructura de entrenamiento y guardado de modelos está basada en mi reposito
 
 ## Análisis exploratorio
 
+La variable bmi tiene valores faltantes. En lugar de imputar con la media o mediana global, se imputa por grupo de género y edad porque el IMC varía considerablemente entre distintos grupos demográficos.
+
+Las variables categóricas se convierten a formato numérico mediante one-hot encoding. Las variables continuas se normalizan con Z-score para que ninguna domine el gradiente por tener una escala numéricamente más grande que las demás.
+
+| bmi | 135 |
+| dtype: | int64 |
+
 El dataset tiene clase desbalanceada, con alrededor del 52% de los casos sin stroke y solo el 48.07% con stroke. Esto es clínicamente realista pero implica que el accuracy por sí solo no es suficiente para evaluar el modelo, ya que un clasificador trivial podría obtener métricas altas sin aprender patrones reales. Por esta razón se reportan F1 Macro y ROC-AUC como métricas principales.
 
+![alt text](./images/image.png)
+
 Se observa que probablemente existe una correlación entre la edad y la presencia de stroke, lo que es coherente con los factores de riesgo documentados clínicamente.
+
+![alt text](./images/image-1.png)
+
+---
+
+## Funciones de evaluación
+
+Se reportan accuracy, F1 Macro, F1 Weighted y ROC-AUC. Con clases desbalanceadas como este dataset, la métrica más relevante es ROC-AUC porque mide qué tan bien el modelo separa las dos clases independientemente del umbral de decisión.
 
 ---
 
@@ -95,6 +122,8 @@ graph LR
 
 ## Resultados
 
+![alt text](./images/image-2.png)
+
 | Modelo                 | Accuracy | F1 Macro | ROC-AUC | Tiempo |
 | ---------------------- | -------- | -------- | ------- | ------ |
 | Random Forest mejorado | 0.9550   | 0.9549   | 0.9885  | 0.82s  |
@@ -159,3 +188,15 @@ python predict.py --models ./models --interactive
 Con argumentos directos:
 
 python predict.py --models ./models --age 72 --gender Male --hypertension 1 --heart_disease 1 --ever_married Yes --work_type Private --residence_type Urban --avg_glucose_level 228.0 --bmi 36.6 --smoking_status "formerly smoked"
+
+---
+
+## Referencias
+
+Ramírez Herrera, A. M. (2024). SongTextClassifier: Evidencia de deep learning para Inteligencia Artificial Avanzada para la Ciencia de Datos II. GitHub. https://github.com/Angeltrek/SongTextClassifier
+
+Heart Stroke Dataset. Kaggle. https://www.kaggle.com/datasets/madhavtesting/heart-stroke-dataset
+
+Sokolova, M., & Lapalme, G. (2009). A systematic analysis of performance measures for classification tasks. Information Processing & Management, 45(4), 427–437. https://doi.org/10.1016/j.ipm.2009.03.002
+
+Asadi, H., et al. (2023). Evaluating machine learning models for stroke prediction based on clinical variables. Frontiers in Neurology. https://doi.org/10.3389/fneur.2025.1668420
