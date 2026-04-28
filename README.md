@@ -70,6 +70,8 @@ Se analizó la correlación entre variables para identificar multicolinealidad y
 
 ### Logistic Regression
 
+La regresión logística calcula una combinación lineal ponderada de los features de entrada y la pasa por una función sigmoide que convierte el resultado en una probabilidad entre 0 y 1. Se eligió como primer modelo porque es el baseline más interpretable disponible: cada coeficiente aprendido corresponde directamente a una variable clínica e indica cuánto aumenta o disminuye el log-odds de sufrir un stroke al cambiar esa variable. En un contexto médico esa transparencia tiene valor por sí sola, independientemente de las métricas de clasificación. Su limitación principal es que solo puede capturar relaciones lineales entre las variables, lo que en datos clínicos con interacciones complejas entre edad, glucosa e historial médico resulta insuficiente.
+
 ```mermaid
 graph LR
     A[Input\nn_features] --> B[Linear combination\nz = Wx + b]
@@ -78,6 +80,8 @@ graph LR
 ```
 
 ### Random Forest
+
+El Random Forest construye un número determinado de árboles de decisión sobre subconjuntos aleatorios de los datos de entrenamiento y de los features disponibles. Cada árbol produce una predicción independiente y el resultado final es la clase que más árboles votaron. Esta estrategia reduce la varianza que tiene un árbol individual y hace al modelo más robusto frente a ruido en los datos. Se eligió porque Asadi et al. (2023) lo identificaron como el mejor modelo para analizar importancia de features en datos clínicos de stroke, y porque los ensambles de árboles generalizan bien en datasets tabulares de tamaño moderado sin requerir el volumen de datos que necesitan las redes neuronales. El parámetro class_weight balanceado compensa el desbalance de clases asignando mayor penalización a los errores sobre la clase positiva.
 
 ```mermaid
 graph TD
@@ -92,6 +96,8 @@ graph TD
 
 ### MLP base
 
+El MLP base es la red neuronal densa más simple del conjunto. Recibe los features de entrada, los pasa por dos capas ocultas con activación ReLU que aprenden combinaciones no lineales de las variables clínicas, y produce una probabilidad de stroke con una capa de salida con activación sigmoide. El Dropout en cada capa desactiva aleatoriamente un porcentaje de las neuronas durante el entrenamiento, lo que actúa como regularizador y reduce el sobreajuste. Se diseñó con una capacidad deliberadamente moderada para establecer un piso de referencia antes de agregar complejidad: si esta arquitectura ya captura la señal del dataset, las variantes más profundas deben confirmarlo con métricas superiores.
+
 ```mermaid
 graph LR
     A[Input\nn_features] --> B[Dense 64\nReLU]
@@ -103,6 +109,8 @@ graph LR
 ```
 
 ### MLP con BatchNormalization
+
+Esta arquitectura extiende el MLP base con tres capas ocultas y agrega BatchNormalization después de cada una. La normalización por lotes estandariza las activaciones de cada capa antes de pasarlas a la siguiente, lo que estabiliza la distribución interna de los valores durante el entrenamiento y permite usar learning rates más altos sin que el gradiente diverja. El efecto práctico es una convergencia más rápida y estable. Trigka y Dritsas (2023) reportaron este mismo beneficio en arquitecturas similares aplicadas a predicción de riesgo cardiovascular sobre datos tabulares clínicos. Las tasas de Dropout son mayores que en el MLP base porque la mayor capacidad del modelo lo hace más propenso al sobreajuste.
 
 ```mermaid
 graph LR
@@ -148,25 +156,32 @@ El feature más relevante según el Random Forest fue la edad, seguido del nivel
 
 Python 3.10, 3.11 o 3.12 instalado en el sistema. Para verificar:
 
+```bash
 python --version
+```
 
 ### Windows
 
+```bash
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
+```
 
 ### macOS / Linux
 
+```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 Para desactivar el entorno:
+```
 
 ## deactivate
 
 ## Estructura del proyecto
 
+```
 stroke-prediction/
 ├── predict.py
 ├── requirements.txt
@@ -174,6 +189,7 @@ stroke-prediction/
 └── models/
 ├── rf_improved_model.pkl
 └── MLP_deep.keras
+```
 
 ---
 
@@ -181,13 +197,21 @@ stroke-prediction/
 
 Paciente completamente aleatorio:
 
+```bash
 python predict.py --models ./models --random
+```
+
 Modo interactivo (presiona Enter en cualquier campo para usar un valor aleatorio):
 
+```bash
 python predict.py --models ./models --interactive
+```
+
 Con argumentos directos:
 
+```bash
 python predict.py --models ./models --age 72 --gender Male --hypertension 1 --heart_disease 1 --ever_married Yes --work_type Private --residence_type Urban --avg_glucose_level 228.0 --bmi 36.6 --smoking_status "formerly smoked"
+```
 
 ---
 
